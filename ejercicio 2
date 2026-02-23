@@ -1,0 +1,161 @@
+#   Codigo que implementa el esquema numerico 
+#   del metodo de biseccion
+# 
+#           Autor:
+#   Dr. Ivan de Jesus May-Cen
+#   imaycen@hotmail.com
+#   Version 1.0 : 05/02/2025
+#
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+import csv
+
+# Definir la función que va introducirse en
+# el esquema del metodo de biseccion
+def f(x):
+    return np.exp(-x) - x
+
+# Algoritmo numerico del
+# Método de Bisección
+def biseccion(a, b, tol=1e-5, max_iter=100):
+    if f(a) * f(b) >= 0:
+        print("El método de bisección no es aplicable en el intervalo dado.")
+        return None
+    
+    iteraciones = []
+    errores_abs = []
+    errores_rel = []
+    errores_cuad = []
+    tabla = []
+
+    c_old = a  # Para calcular errores
+
+    print("\nIteraciones del Método de Bisección:")
+    print("Iter |       a       |       b       |       c       |      f(c)      |   E_abs   |   E_rel   |   E_cuad")
+    print("-" * 120)
+
+    txt_lines = []
+    txt_lines.append("\nIteraciones del Método de Bisección:")
+    txt_lines.append("Iter |       a       |       b       |       c       |      f(c)      |   E_abs   |   E_rel   |   E_cuad")
+    txt_lines.append("-" * 120)
+
+    for i in range(max_iter):
+        c = (a + b) / 2
+        iteraciones.append(c)
+        
+        error_abs = abs(c - c_old)
+        error_rel = error_abs / abs(c) if c != 0 else 0
+        error_cuad = error_abs**2
+
+        errores_abs.append(error_abs)
+        errores_rel.append(error_rel)
+        errores_cuad.append(error_cuad)
+
+        fila = [i+1, a, b, c, f(c), error_abs, error_rel, error_cuad]
+        tabla.append(fila)
+
+        row_str = f"{i+1:4d} | {a:.8f} | {b:.8f} | {c:.8f} | {f(c):.8f} | {error_abs:.2e} | {error_rel:.2e} | {error_cuad:.2e}"
+        print(row_str)
+        txt_lines.append(row_str)
+
+        if abs(f(c)) < tol or error_abs < tol:
+            break
+
+        if f(a) * f(c) < 0:
+            b = c
+        else:
+            a = c
+        
+        c_old = c
+
+    return iteraciones, errores_abs, errores_rel, errores_cuad, tabla, txt_lines
+
+
+# Parámetros iniciales
+# se introduce el intervalo [a, b]
+a, b = 0, 1
+iteraciones, e_abs, e_rel, e_cuad, tabla, txt_lines = biseccion(a, b)
+
+# Guardar tabla en CSV
+with open("Ejercicio2_tabla.csv", mode="w", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow(["Iter", "a", "b", "c", "f(c)", "Error Absoluto", "Error Relativo", "Error Cuadratico"])
+    writer.writerows(tabla)
+
+# Guardar tabla en TXT
+with open("Ejercicio2_tabla.txt", mode="w", encoding="utf-8") as file:
+    for linea in txt_lines:
+        file.write(linea + "\n")
+
+# Crear la figura (2 gráficas + tabla)
+fig, ax = plt.subplots(2, 2, figsize=(16, 10))
+
+# ----------------------------
+# Gráfica de la función
+# ----------------------------
+x = np.linspace(a - 1, b + 1, 400)
+y = f(x)
+
+ax[0, 0].plot(x, y, label=r'$f(x) = e^{-x} - x$', color='b')
+ax[0, 0].axhline(0, color='k', linestyle='--', linewidth=1)
+ax[0, 0].scatter(iteraciones, [f(c) for c in iteraciones], color='red', label='Iteraciones')
+ax[0, 0].set_xlabel('x')
+ax[0, 0].set_ylabel('f(x)')
+ax[0, 0].set_title("Convergencia del Método de Bisección")
+ax[0, 0].legend()
+ax[0, 0].grid()
+
+# ----------------------------
+# Gráfica de errores (3 en 1)
+# ----------------------------
+ax[0, 1].plot(range(1, len(e_abs)+1), e_abs, marker='o', linestyle='-', label="Error Absoluto")
+ax[0, 1].plot(range(1, len(e_rel)+1), e_rel, marker='s', linestyle='-', label="Error Relativo")
+ax[0, 1].plot(range(1, len(e_cuad)+1), e_cuad, marker='^', linestyle='-', label="Error Cuadrático")
+
+ax[0, 1].set_yscale("log")
+ax[0, 1].set_xlabel("Iteración")
+ax[0, 1].set_ylabel("Errores")
+ax[0, 1].set_title("Errores Absoluto, Relativo y Cuadrático")
+ax[0, 1].legend()
+ax[0, 1].grid()
+
+# ----------------------------
+# Tabla en la misma figura
+# ----------------------------
+ax[1, 0].axis("off")
+
+col_labels = ["Iter", "a", "b", "c", "f(c)", "E_abs", "E_rel", "E_cuad"]
+
+tabla_redondeada = [
+    [fila[0],
+     f"{fila[1]:.5f}", f"{fila[2]:.5f}", f"{fila[3]:.5f}", f"{fila[4]:.5f}",
+     f"{fila[5]:.2e}", f"{fila[6]:.2e}", f"{fila[7]:.2e}"]
+    for fila in tabla
+]
+
+t = ax[1, 0].table(
+    cellText=tabla_redondeada,
+    colLabels=col_labels,
+    loc="center",
+    cellLoc="center"
+)
+
+t.auto_set_font_size(False)
+t.set_fontsize(8)
+t.scale(1, 1.3)
+
+ax[1, 0].set_title("Tabla de Iteraciones", pad=10)
+
+# Panel sobrante
+ax[1, 1].axis("off")
+
+# Guardar la figura completa
+plt.tight_layout()
+plt.savefig("Ejercicio2_resultado_completo.png", dpi=300)
+plt.show()
+
+print("\n✅ Guardado: Ejercicio2_tabla.csv")
+print("✅ Guardado: Ejercicio2_tabla.txt")
+print("✅ Guardado: Ejercicio2_resultado_completo.png")
